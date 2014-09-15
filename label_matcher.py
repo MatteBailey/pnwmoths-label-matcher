@@ -5,6 +5,8 @@ images, it is no longer necessary to have image label info in two seperate recor
 database. The script provides a way to remove unneeded duplicates.
 
 To work, this script needs to be run from "pnwmoths/app".
+
+TODO: Make script work from any directory.
 '''
 
 import os
@@ -14,18 +16,18 @@ from distutils.util import strtobool
 
 # Create a list containing the desired fields from the input record
 def make_data(record):
-    record_data = [record.id, record.record_type, record.latitude, record.longitude, record.state, record.county, record.locality, record.elevation, record.date, record.collector, record.collection]
+    record_data = [record.id, record.species.genus, record.species.species, record.record_type, record.latitude, record.longitude, record.state, record.county, record.locality, record.elevation, record.date, record.collector, record.collection]
     
     # If the the field exists, change list entry to string representation
     # TODO: Figure out a way to change list elements without referring to them by index. This would improve readability.
     if record.state:
-        record_data[4] = record.state.code
+        record_data[6] = record.state.code
     if record.county:
-        record_data[5] = record.county.name
+        record_data[7] = record.county.name
     if record.collector:
-        record_data[9] = record.collector.name
+        record_data[11] = record.collector.name
     if record.collection:
-        record_data[10] = record.collection.name
+        record_data[12] = record.collection.name
         
     return map(str, record_data)
 
@@ -34,7 +36,7 @@ def print_grid(image, record):
     
     # Intialize data with everything that doesn't come from the actual records
     data = [
-        ['', 'ID','Voucher Type', 'Latitude', 'Longitude', 'State', 'County', 'Locality', 'Elevation', 'Date', 'Collector', 'Collection'],
+        ['', 'ID', 'Genus', 'Species', 'Voucher Type', 'Latitude', 'Longitude', 'State', 'County', 'Locality', 'Elevation', 'Date', 'Collector', 'Collection'],
         ['Current Label:'],
         ['Matching Record:']
     ]
@@ -62,6 +64,8 @@ def print_grid(image, record):
     # Print each row
     for row in data:
         print "".join(row)
+        
+    print('')
 
 # Find all images for input species, and find records matching image labels        
 def match_species(species_id):
@@ -69,7 +73,7 @@ def match_species(species_id):
     num_images = len(images)
     image_count = 0
     
-    try:
+    if images:
         for image in images:
             image_count += 1
             print "Image %d of %d:" % (image_count, num_images)
@@ -88,29 +92,46 @@ def match_species(species_id):
                     record_count +=1
                     print "Match %d of %d:" % (record_count, num_records)
                     print_grid(image.record, record)
-                    confirm = strtobool(raw_input("Delete current label and replace with this record? (yes/no) "))
+                    print ("1: Delete current label and replace with this record")
+                    print ("2: Replace current label with this record, but keep old label in database")
+                    print ("3: Delete matching record from database, and leave label unchanged")
+                    print ("4: Make no changes")
                     
-                    # Delete label and use matching record
-                    if confirm:
-                        image.record.delete()
-                        image.record = record
-                        image.save()
-                        print "Original label deleted, and matching record now used \n"
-                    else:
-                        confirm = strtobool(raw_input("Replace current label with this record, but keep old label in database? (yes/no) "))
-                        
-                        # Change label to record, but don't delete label
-                        if confirm:
+                    valid = False
+                    while not valid:
+                        response = raw_input("Choose option 1, 2, 3, or 4: ")
+
+                        # Delete label and use matching record
+                        if response == '1':
+                            valid = True
+                            image.record.delete()
+                            image.record = record
+                            image.save(keep_old_record=False)
+                            print "Original label deleted, and matching record now used \n"
+                            
+                        # Change label to record, but don't delete label    
+                        elif response == '2':
+                            valid = True
                             image.record = record
                             image.save()
                             print "Matching record now used as label, and old label kept in database \n"
-                        else:
+                        
+                        # Delete record
+                        elif response == '3':
+                            valid = True
+                            record.delete()
+                            print "Matching record deleted, no changes made to label \n"
+                            
+                        elif response == '4':
+                            valid = True
                             print "No changes made \n"
+                            
+                        else:
+                            print "Invalid option, try again \n"
             else:
                 print "No records match image label \n"
-                        
-    except ValueError:
-        print "Valid inputs are 'yes', 'y', 'no', and 'n'"
+    else:
+        print "No images for entered species \n"
 
 def main():
     running = True
