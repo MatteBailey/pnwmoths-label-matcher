@@ -78,58 +78,61 @@ def match_species(species_id):
             image_count += 1
             print "Image %d of %d:" % (image_count, num_images)
             
-            # Find records matching image label
-            records = SpeciesRecord.objects.all().filter(
-            species=species_id, year=image.record.year, month=image.record.month, day=image.record.day, state=image.record.state, county=image.record.county,collection=image.record.collection).exclude(
-            id=image.record.id)
-            
-            if records:
-                num_records = len(records)
-                record_count = 0
+            if image.record:
+                # Find records matching image label
+                records = SpeciesRecord.objects.all().filter(
+                species=species_id, year=image.record.year, month=image.record.month, day=image.record.day, state=image.record.state, county=image.record.county,collection=image.record.collection).exclude(
+                id=image.record.id)
                 
-                # For each matching record, print image label and record and ask user what they want to do
-                for record in records:
-                    record_count +=1
-                    print "Match %d of %d:" % (record_count, num_records)
-                    print_grid(image.record, record)
-                    print ("1: Delete current label and replace with this record")
-                    print ("2: Replace current label with this record, but keep old label in database")
-                    print ("3: Delete matching record from database, and leave label unchanged")
-                    print ("4: Make no changes")
+                if records:
+                    num_records = len(records)
+                    record_count = 0
                     
-                    valid = False
-                    while not valid:
-                        response = raw_input("Choose option 1, 2, 3, or 4: ")
-
-                        # Delete label and use matching record
-                        if response == '1':
-                            valid = True
-                            image.record.delete()
-                            image.record = record
-                            image.save(keep_old_record=False)
-                            print "Original label deleted, and matching record now used \n"
-                            
-                        # Change label to record, but don't delete label    
-                        elif response == '2':
-                            valid = True
-                            image.record = record
-                            image.save()
-                            print "Matching record now used as label, and old label kept in database \n"
+                    # For each matching record, print image label and record and ask user what they want to do
+                    for record in records:
+                        record_count +=1
+                        print "Match %d of %d:" % (record_count, num_records)
+                        print_grid(image.record, record)
+                        print ("1: Delete current label and replace with this record")
+                        print ("2: Replace current label with this record, but keep old label in database")
+                        print ("3: Delete matching record from database, and leave label unchanged")
+                        print ("4: Make no changes")
                         
-                        # Delete record
-                        elif response == '3':
-                            valid = True
-                            record.delete()
-                            print "Matching record deleted, no changes made to label \n"
+                        valid = False
+                        while not valid:
+                            response = raw_input("Choose option 1, 2, 3, or 4: ")
+    
+                            # Delete label and use matching record
+                            if response == '1':
+                                valid = True
+                                image.record.delete()
+                                image.record = record
+                                image.save(keep_old_record=False)
+                                print "Original label deleted, and matching record now used \n"
+                                
+                            # Change label to record, but don't delete label    
+                            elif response == '2':
+                                valid = True
+                                image.record = record
+                                image.save()
+                                print "Matching record now used as label, and old label kept in database \n"
                             
-                        elif response == '4':
-                            valid = True
-                            print "No changes made \n"
-                            
-                        else:
-                            print "Invalid option, try again \n"
+                            # Delete record
+                            elif response == '3':
+                                valid = True
+                                record.delete()
+                                print "Matching record deleted, no changes made to label \n"
+                                
+                            elif response == '4':
+                                valid = True
+                                print "No changes made \n"
+                                
+                            else:
+                                print "Invalid option, try again \n"
+                else:
+                    print "No records match image label \n"
             else:
-                print "No records match image label \n"
+                print "Image does not have a label \n"
     else:
         print "No images for entered species \n"
 
@@ -168,3 +171,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    
